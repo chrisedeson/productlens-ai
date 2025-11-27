@@ -3,7 +3,8 @@
  * Handles communication with the Flask backend
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+// Remove trailing slash if present to avoid double-slash issues
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/$/, '');
 
 export interface Product {
   stock_code: string;

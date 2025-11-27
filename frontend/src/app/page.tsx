@@ -139,7 +139,7 @@ export default function Home() {
 
       <main className="container-responsive pb-12">
         {/* Tab Navigation - Card Style */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-8 -mt-4 relative z-10">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-8 mt-6 relative z-10">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (

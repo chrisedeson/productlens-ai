@@ -68,7 +68,7 @@ export async function getRecommendations(query: string): Promise<RecommendationR
  */
 export async function processOCRQuery(imageFile: File): Promise<OCRResponse> {
   const formData = new FormData();
-  formData.append('handwritten_query', imageFile);
+  formData.append('image_data', imageFile);
 
   const response = await fetch(`${API_BASE_URL}/ocr-query`, {
     method: 'POST',

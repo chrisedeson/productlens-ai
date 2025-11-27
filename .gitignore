@@ -149,6 +149,5 @@ yarn-error.log*
 !backend/data/images/.gitkeep
 !backend/trained_models/.gitkeep
 
-
 # Others
 /reports

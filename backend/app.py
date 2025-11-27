@@ -41,7 +41,25 @@ def create_app() -> Flask:
     app = Flask(__name__)
     
     # Enable CORS for frontend
-    CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000"])
+    # Allows localhost for development and Vercel domains for production
+    allowed_origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+    
+    # Add production frontend URL if set
+    frontend_url = os.environ.get("FRONTEND_URL")
+    if frontend_url:
+        allowed_origins.append(frontend_url)
+    
+    # Allow all Vercel preview deployments
+    CORS(app, origins=allowed_origins, resources={
+        r"/*": {
+            "origins": allowed_origins,
+            "allow_headers": ["Content-Type", "Authorization"],
+            "methods": ["GET", "POST", "OPTIONS"]
+        }
+    })
     
     # Validate configuration
     if not config.validate():

@@ -45,6 +45,8 @@ def create_app() -> Flask:
     allowed_origins = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "https://productlens-ai.vercel.app",
+        "https://productlens-fn44jydoq-christopher-edesons-projects.vercel.app",
     ]
     
     # Add production frontend URL if set

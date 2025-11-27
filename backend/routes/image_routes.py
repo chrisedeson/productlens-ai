@@ -21,8 +21,16 @@ def get_classification_service():
     """Lazy load the classification service."""
     global _classification_service
     if _classification_service is None:
-        from services.image_classification_service import ImageClassificationService
-        _classification_service = ImageClassificationService()
+        import os
+        # Skip CNN loading on low-memory environments
+        if os.environ.get("DISABLE_CNN", "").lower() == "true":
+            return None
+        try:
+            from services.image_classification_service import ImageClassificationService
+            _classification_service = ImageClassificationService()
+        except Exception as e:
+            logger.warning(f"CNN service not available: {e}")
+            return None
     return _classification_service
 
 
@@ -70,6 +78,15 @@ def image_product_search():
         
         # Use CNN to classify the image
         classification_service = get_classification_service()
+        
+        if classification_service is None:
+            return jsonify({
+                "products": [],
+                "response": "Image classification is currently disabled on this server due to memory constraints. Please use Text Search or Handwriting OCR instead.",
+                "predicted_class": "",
+                "predictions": []
+            }), 503
+        
         predictions = classification_service.classify_from_bytes(image_data, top_k=5)
         
         if not predictions:

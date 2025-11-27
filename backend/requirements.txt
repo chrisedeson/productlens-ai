@@ -1,6 +1,7 @@
 # Flask Web Framework
 flask==3.0.0
 flask-cors==4.0.0
+gunicorn==21.2.0
 
 # Environment & Configuration
 python-dotenv==1.0.0
@@ -21,6 +22,7 @@ Pillow==10.1.0
 
 # Deep Learning (CNN)
 tensorflow==2.16.1
+huggingface_hub>=0.20.0
 
 # Web Scraping
 requests==2.31.0

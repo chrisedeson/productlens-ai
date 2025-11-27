@@ -5,6 +5,7 @@ Uses the custom CNN model trained from scratch for product classification.
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
@@ -20,8 +21,18 @@ try:
 except ImportError:
     TF_AVAILABLE = False
 
+# Hugging Face Hub import for model downloading
+try:
+    from huggingface_hub import hf_hub_download
+    HF_AVAILABLE = True
+except ImportError:
+    HF_AVAILABLE = False
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Hugging Face model repository
+HF_REPO_ID = "chrisedeson/productlens-cnn-model"
 
 
 class ImageClassificationService:
@@ -44,6 +55,7 @@ class ImageClassificationService:
         
         # Default paths
         base_path = Path(__file__).parent.parent / "models"
+        base_path.mkdir(parents=True, exist_ok=True)
         
         if model_path is None:
             # Try different model files
@@ -52,9 +64,17 @@ class ImageClassificationService:
                 if potential_path.exists():
                     model_path = potential_path
                     break
+            
+            # If no model found locally, try to download from Hugging Face
+            if model_path is None or not model_path.exists():
+                model_path = self._download_model_from_hf(base_path)
         
         if class_mapping_path is None:
             class_mapping_path = base_path / "class_mapping.json"
+            
+            # Download class mapping from HF if not found locally
+            if not class_mapping_path.exists():
+                self._download_class_mapping_from_hf(base_path)
         
         # Load model
         if model_path and model_path.exists():
@@ -80,6 +100,64 @@ class ImageClassificationService:
             self.image_size = (224, 224)
         
         logger.info(f"ImageClassificationService initialized. Model loaded: {self.model_loaded}")
+    
+    def _download_model_from_hf(self, base_path: Path) -> Optional[Path]:
+        """
+        Download the CNN model from Hugging Face Hub.
+        
+        Args:
+            base_path: Directory to save the model
+            
+        Returns:
+            Path to the downloaded model or None if download failed
+        """
+        if not HF_AVAILABLE:
+            logger.warning("huggingface_hub not installed. Cannot download model.")
+            return None
+        
+        try:
+            logger.info(f"Downloading CNN model from Hugging Face Hub ({HF_REPO_ID})...")
+            model_file = hf_hub_download(
+                repo_id=HF_REPO_ID,
+                filename="simple_cnn_model.keras",
+                token=os.environ.get("HF_TOKEN"),
+                local_dir=str(base_path),
+                local_dir_use_symlinks=False
+            )
+            logger.info(f"Model downloaded successfully to {model_file}")
+            return Path(model_file)
+        except Exception as e:
+            logger.error(f"Failed to download model from Hugging Face: {e}")
+            return None
+    
+    def _download_class_mapping_from_hf(self, base_path: Path) -> Optional[Path]:
+        """
+        Download the class mapping file from Hugging Face Hub.
+        
+        Args:
+            base_path: Directory to save the file
+            
+        Returns:
+            Path to the downloaded file or None if download failed
+        """
+        if not HF_AVAILABLE:
+            logger.warning("huggingface_hub not installed. Cannot download class mapping.")
+            return None
+        
+        try:
+            logger.info(f"Downloading class mapping from Hugging Face Hub ({HF_REPO_ID})...")
+            mapping_file = hf_hub_download(
+                repo_id=HF_REPO_ID,
+                filename="class_mapping.json",
+                token=os.environ.get("HF_TOKEN"),
+                local_dir=str(base_path),
+                local_dir_use_symlinks=False
+            )
+            logger.info(f"Class mapping downloaded successfully to {mapping_file}")
+            return Path(mapping_file)
+        except Exception as e:
+            logger.error(f"Failed to download class mapping from Hugging Face: {e}")
+            return None
     
     def preprocess_image(self, image: Image.Image) -> np.ndarray:
         """

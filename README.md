@@ -158,10 +158,6 @@ The CNN model is trained to classify 10 product categories:
 The original dataset contains 541,910 e-commerce transactions with the following fields:
 - InvoiceNo, StockCode, Description, Quantity, InvoiceDate, UnitPrice, CustomerID, Country
 
-## License
-
-MIT License
-
 ## Author
 
-ProductLens AI Team
+Christopher Edeson

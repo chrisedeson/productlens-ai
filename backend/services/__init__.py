@@ -9,7 +9,7 @@ from .vector_service import VectorService
 from .recommendation_service import RecommendationService
 from .llm_service import LLMService
 from .ocr_service import OCRService
-from .cnn_model import CNNModel
+from .image_classification_service import ImageClassificationService
 from .image_scraper import ImageScraper
 
 __all__ = [
@@ -19,6 +19,6 @@ __all__ = [
     "RecommendationService",
     "LLMService",
     "OCRService",
-    "CNNModel",
+    "ImageClassificationService",
     "ImageScraper",
 ]

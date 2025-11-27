@@ -18,7 +18,6 @@ from services.vector_service import VectorService
 from services.llm_service import LLMService
 from services.recommendation_service import RecommendationService
 from services.ocr_service import OCRService
-from services.cnn_model import CNNModel
 
 from routes.recommendation_routes import recommendation_bp, init_recommendation_routes
 from routes.ocr_routes import ocr_bp, init_ocr_routes
@@ -79,21 +78,14 @@ def create_app() -> Flask:
             logger.warning(f"OCR service not available: {e}")
             ocr_service = None
         
-        # CNN model service
-        try:
-            cnn_service = CNNModel(model_path=config.CNN_MODEL_PATH)
-        except Exception as e:
-            logger.warning(f"CNN model not available: {e}")
-            cnn_service = None
-        
         # Initialize route handlers with services
         init_recommendation_routes(recommendation_service)
         
         if ocr_service:
             init_ocr_routes(ocr_service, recommendation_service)
         
-        if cnn_service:
-            init_image_routes(cnn_service, recommendation_service)
+        # Image routes (CNN service is lazy-loaded in the route)
+        init_image_routes(recommendation_service)
         
         logger.info("All services initialized successfully")
         
@@ -110,12 +102,21 @@ def create_app() -> Flask:
     @app.route("/health", methods=["GET"])
     def health_check():
         """Health check endpoint."""
+        # Check CNN service status lazily
+        cnn_available = False
+        try:
+            from services.image_classification_service import ImageClassificationService
+            cnn_svc = ImageClassificationService()
+            cnn_available = cnn_svc.model_loaded
+        except Exception:
+            pass
+        
         return jsonify({
             "status": "healthy",
             "services": {
                 "recommendation": True,
                 "ocr": ocr_service is not None,
-                "cnn": cnn_service is not None and cnn_service.model is not None
+                "cnn": cnn_available
             }
         })
     

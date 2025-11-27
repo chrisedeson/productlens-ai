@@ -121,11 +121,15 @@ dmypy.json
 Thumbs.db
 
 # Project specific
-backend/data/raw/
-backend/data/cleaned/
-backend/data/images/
+backend/data/
 backend/trained_models/*.h5
 backend/trained_models/*.keras
+
+# CNN Model files (large binary files)
+backend/models/*.keras
+backend/models/*.h5
+backend/models/product_classifier_savedmodel/
+backend/models/logs/
 
 # Node.js (frontend)
 node_modules/
@@ -144,3 +148,7 @@ yarn-error.log*
 !backend/data/cleaned/.gitkeep
 !backend/data/images/.gitkeep
 !backend/trained_models/.gitkeep
+
+
+# Others
+/reports

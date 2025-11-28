@@ -1,6 +1,6 @@
 """
 Image Product Detection Routes for ProductLens AI.
-Endpoint 3: Identify products from images using CNN.
+Endpoint 3: Identify products from images using CNN and OpenAI Vision.
 """
 
 from flask import Blueprint, request, jsonify
@@ -15,6 +15,7 @@ image_bp = Blueprint("image", __name__)
 # Services will be initialized lazily
 _classification_service = None
 _recommendation_service = None
+_openai_api_key = None
 
 
 def get_classification_service():
@@ -22,14 +23,15 @@ def get_classification_service():
     global _classification_service
     if _classification_service is None:
         from services.image_classification_service import ImageClassificationService
-        _classification_service = ImageClassificationService()
+        _classification_service = ImageClassificationService(openai_api_key=_openai_api_key)
     return _classification_service
 
 
-def init_image_routes(rec_svc):
-    """Initialize routes with recommendation service."""
-    global _recommendation_service
+def init_image_routes(rec_svc, openai_api_key: str = None):
+    """Initialize routes with recommendation service and API key."""
+    global _recommendation_service, _openai_api_key
     _recommendation_service = rec_svc
+    _openai_api_key = openai_api_key
 
 
 @image_bp.route("/image-product-search", methods=["POST"])

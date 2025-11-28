@@ -97,22 +97,13 @@ source venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 ```
 
-3. Install Tesseract:
-```bash
-# Ubuntu/Debian
-sudo apt-get install tesseract-ocr
-
-# macOS
-brew install tesseract
-```
-
-4. Configure environment:
+3. Configure environment:
 ```bash
 cp .env.example .env
 # Edit .env with your API keys
 ```
 
-5. Run the server:
+4. Run the server:
 ```bash
 python app.py
 ```

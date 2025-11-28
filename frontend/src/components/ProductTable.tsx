@@ -31,7 +31,7 @@ export function ProductTable({ products, title }: ProductTableProps) {
       <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
         <table className="w-full border-collapse bg-white dark:bg-slate-800">
           <thead>
-            <tr className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-750">
+            <tr className="bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800">
               <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider border-b border-slate-200 dark:border-slate-600">
                 Stock Code
               </th>

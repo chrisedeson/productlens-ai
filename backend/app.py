@@ -126,10 +126,11 @@ def create_app() -> Flask:
         cnn_available = False
         try:
             from services.image_classification_service import ImageClassificationService
-            cnn_svc = ImageClassificationService()
-            cnn_available = cnn_svc.model_loaded
-        except Exception:
-            pass
+            cnn_svc = ImageClassificationService(openai_api_key=config.OPENAI_API_KEY)
+            # Service is available if either CNN model OR OpenAI Vision is available
+            cnn_available = cnn_svc.model_loaded or (cnn_svc.openai_client is not None)
+        except Exception as e:
+            logger.warning(f"Image classification service check failed: {e}")
         
         return jsonify({
             "status": "healthy",

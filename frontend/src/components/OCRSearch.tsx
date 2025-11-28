@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { processOCRQuery, Product } from '@/lib/api';
-import { ProductGrid } from './ProductCard';
+import { ProductTable } from './ProductTable';
 import Image from 'next/image';
 
 export function OCRSearch() {
@@ -206,7 +206,7 @@ export function OCRSearch() {
         </div>
       )}
 
-      <ProductGrid products={products} title="Matching Products" />
+      <ProductTable products={products} title="Matching Products" />
     </div>
   );
 }

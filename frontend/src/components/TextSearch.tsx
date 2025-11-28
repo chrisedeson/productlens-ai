@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { getRecommendations, Product } from '@/lib/api';
-import { ProductGrid } from './ProductCard';
+import { ProductTable } from './ProductTable';
 
 export function TextSearch() {
   const [query, setQuery] = useState('');
@@ -122,8 +122,8 @@ export function TextSearch() {
         </div>
       )}
 
-      {/* Products Grid */}
-      <ProductGrid products={products} title="Recommended Products" />
+      {/* Products Table */}
+      <ProductTable products={products} title="Recommended Products" />
     </div>
   );
 }

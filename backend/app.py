@@ -93,7 +93,7 @@ def create_app() -> Flask:
         
         # OCR service
         try:
-            ocr_service = OCRService()
+            ocr_service = OCRService(openai_api_key=config.OPENAI_API_KEY)
         except Exception as e:
             logger.warning(f"OCR service not available: {e}")
             ocr_service = None
@@ -105,7 +105,7 @@ def create_app() -> Flask:
             init_ocr_routes(ocr_service, recommendation_service)
         
         # Image routes (CNN service is lazy-loaded in the route)
-        init_image_routes(recommendation_service)
+        init_image_routes(recommendation_service, openai_api_key=config.OPENAI_API_KEY)
         
         logger.info("All services initialized successfully")
         

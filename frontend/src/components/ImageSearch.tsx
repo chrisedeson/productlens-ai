@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { searchByImage, Product } from '@/lib/api';
-import { ProductGrid } from './ProductCard';
+import { ProductTable } from './ProductTable';
 import Image from 'next/image';
 
 interface Prediction {
@@ -256,7 +256,7 @@ export function ImageSearch() {
         </div>
       )}
 
-      <ProductGrid products={products} title="Similar Products" />
+      <ProductTable products={products} title="Similar Products" />
     </div>
   );
 }

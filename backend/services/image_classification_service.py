@@ -1,12 +1,10 @@
 """
 Image Classification Service for ProductLens AI.
-Uses the custom CNN model trained from scratch for product classification,
-with OpenAI Vision as a fallback for better generalization.
+Uses the custom CNN model trained from scratch for product classification.
 """
 
 import json
 import logging
-import base64
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
@@ -22,51 +20,30 @@ try:
 except ImportError:
     TF_AVAILABLE = False
 
-# OpenAI import
-try:
-    from openai import OpenAI
-    OPENAI_AVAILABLE = True
-except ImportError:
-    OPENAI_AVAILABLE = False
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Hugging Face model repository
-HF_REPO_ID = "chrisedeson/productlens-cnn-model"
 
 
 class ImageClassificationService:
     """
-    Service for classifying product images using the trained CNN model
-    with OpenAI Vision as a fallback for better generalization.
+    Service for classifying product images using the trained CNN model.
     
-    The CNN model was trained from scratch (no pre-trained models) on 10 product classes.
-    OpenAI Vision provides broader product recognition capabilities.
+    The model was trained from scratch (no pre-trained models) on 10 product classes.
     """
     
-    # Confidence threshold below which we use OpenAI Vision
-    CONFIDENCE_THRESHOLD = 0.7
-    
-    def __init__(self, model_path: Optional[Path] = None, class_mapping_path: Optional[Path] = None, 
-                 openai_api_key: Optional[str] = None):
+    def __init__(self, model_path: Optional[Path] = None, class_mapping_path: Optional[Path] = None):
         """
         Initialize the classification service.
         
         Args:
             model_path: Path to the trained Keras model file
             class_mapping_path: Path to the class mapping JSON file
-            openai_api_key: OpenAI API key for Vision fallback
         """
-        # Initialize OpenAI client
-        self.openai_client = None
-        if openai_api_key and OPENAI_AVAILABLE:
-            self.openai_client = OpenAI(api_key=openai_api_key)
-            logger.info("OpenAI Vision initialized for image classification")
+        if not TF_AVAILABLE:
+            raise ImportError("TensorFlow is required for image classification")
         
         # Default paths
         base_path = Path(__file__).parent.parent / "models"
-        base_path.mkdir(parents=True, exist_ok=True)
         
         if model_path is None:
             # Try different model files
@@ -75,30 +52,19 @@ class ImageClassificationService:
                 if potential_path.exists():
                     model_path = potential_path
                     break
-            
-            # If no model found locally, try to download from Hugging Face
-            if model_path is None or not model_path.exists():
-                model_path = self._download_model_from_hf(base_path)
         
         if class_mapping_path is None:
             class_mapping_path = base_path / "class_mapping.json"
-            
-            # Download class mapping from HF if not found locally
-            if not class_mapping_path.exists():
-                self._download_class_mapping_from_hf(base_path)
         
         # Load model
-        self.model = None
-        self.model_loaded = False
-        if TF_AVAILABLE and model_path and model_path.exists():
-            try:
-                logger.info(f"Loading model from {model_path}")
-                self.model = keras.models.load_model(str(model_path))
-                self.model_loaded = True
-            except Exception as e:
-                logger.warning(f"Failed to load CNN model: {e}")
+        if model_path and model_path.exists():
+            logger.info(f"Loading model from {model_path}")
+            self.model = keras.models.load_model(str(model_path))
+            self.model_loaded = True
         else:
-            logger.warning(f"CNN model not available. Using OpenAI Vision only.")
+            logger.warning(f"Model not found at {model_path}. Classification will return default predictions.")
+            self.model = None
+            self.model_loaded = False
         
         # Load class mapping
         if class_mapping_path.exists():
@@ -113,65 +79,7 @@ class ImageClassificationService:
             self.class_to_index = {}
             self.image_size = (224, 224)
         
-        logger.info(f"ImageClassificationService initialized. CNN loaded: {self.model_loaded}, OpenAI: {self.openai_client is not None}")
-    
-    def _download_model_from_hf(self, base_path: Path) -> Optional[Path]:
-        """
-        Download the CNN model from Hugging Face Hub.
-        
-        Args:
-            base_path: Directory to save the model
-            
-        Returns:
-            Path to the downloaded model or None if download failed
-        """
-        if not HF_AVAILABLE:
-            logger.warning("huggingface_hub not installed. Cannot download model.")
-            return None
-        
-        try:
-            logger.info(f"Downloading CNN model from Hugging Face Hub ({HF_REPO_ID})...")
-            model_file = hf_hub_download(
-                repo_id=HF_REPO_ID,
-                filename="simple_cnn_model.keras",
-                token=os.environ.get("HF_TOKEN"),
-                local_dir=str(base_path),
-                local_dir_use_symlinks=False
-            )
-            logger.info(f"Model downloaded successfully to {model_file}")
-            return Path(model_file)
-        except Exception as e:
-            logger.error(f"Failed to download model from Hugging Face: {e}")
-            return None
-    
-    def _download_class_mapping_from_hf(self, base_path: Path) -> Optional[Path]:
-        """
-        Download the class mapping file from Hugging Face Hub.
-        
-        Args:
-            base_path: Directory to save the file
-            
-        Returns:
-            Path to the downloaded file or None if download failed
-        """
-        if not HF_AVAILABLE:
-            logger.warning("huggingface_hub not installed. Cannot download class mapping.")
-            return None
-        
-        try:
-            logger.info(f"Downloading class mapping from Hugging Face Hub ({HF_REPO_ID})...")
-            mapping_file = hf_hub_download(
-                repo_id=HF_REPO_ID,
-                filename="class_mapping.json",
-                token=os.environ.get("HF_TOKEN"),
-                local_dir=str(base_path),
-                local_dir_use_symlinks=False
-            )
-            logger.info(f"Class mapping downloaded successfully to {mapping_file}")
-            return Path(mapping_file)
-        except Exception as e:
-            logger.error(f"Failed to download class mapping from Hugging Face: {e}")
-            return None
+        logger.info(f"ImageClassificationService initialized. Model loaded: {self.model_loaded}")
     
     def preprocess_image(self, image: Image.Image) -> np.ndarray:
         """
@@ -198,184 +106,52 @@ class ImageClassificationService:
         
         return img_array
     
-    def _classify_with_openai_vision(self, image_bytes: bytes) -> List[Dict]:
-        """
-        Classify a product image using OpenAI Vision API.
-        
-        Args:
-            image_bytes: Raw image bytes
-            
-        Returns:
-            List of classification results
-        """
-        if not self.openai_client:
-            return []
-        
-        try:
-            # Convert image to base64
-            base64_image = base64.b64encode(image_bytes).decode("utf-8")
-            
-            # Determine image type
-            image = Image.open(io.BytesIO(image_bytes))
-            image_format = image.format.lower() if image.format else "jpeg"
-            if image_format == "jpg":
-                image_format = "jpeg"
-            
-            response = self.openai_client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """You are a product identification assistant for an e-commerce platform. 
-Analyze the product image and identify what product it is.
-
-Respond in this exact JSON format:
-{
-    "product_name": "Short descriptive name of the product",
-    "category": "Product category (e.g., bag, kitchenware, decoration, clothing, electronics)",
-    "description": "Brief description of the product with key features",
-    "confidence": 0.95
-}
-
-Be specific about the product type. For example:
-- "Lunch Bag with Woodland Pattern" not just "bag"
-- "Ceramic Tea Set" not just "dishes"
-- "3-Tier Cake Stand" not just "stand"
-
-Only respond with the JSON, no other text."""
-                    },
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": "Identify this product. What is it?"
-                            },
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/{image_format};base64,{base64_image}"
-                                }
-                            }
-                        ]
-                    }
-                ],
-                max_tokens=300
-            )
-            
-            result_text = response.choices[0].message.content.strip()
-            
-            # Parse JSON response
-            try:
-                # Clean up response if it has markdown code blocks
-                if result_text.startswith("```"):
-                    result_text = result_text.split("```")[1]
-                    if result_text.startswith("json"):
-                        result_text = result_text[4:]
-                
-                result = json.loads(result_text)
-                
-                logger.info(f"OpenAI Vision identified: {result.get('product_name')} (confidence: {result.get('confidence', 0.9)})")
-                
-                return [{
-                    'class_name': result.get('product_name', 'Unknown Product'),
-                    'stock_code': 'VISION',
-                    'description': result.get('product_name', 'Unknown Product'),
-                    'category': result.get('category', 'unknown'),
-                    'full_description': result.get('description', ''),
-                    'confidence': float(result.get('confidence', 0.9)),
-                    'source': 'openai_vision'
-                }]
-                
-            except json.JSONDecodeError:
-                # If JSON parsing fails, extract product name from text
-                logger.warning(f"Failed to parse OpenAI Vision response as JSON: {result_text}")
-                return [{
-                    'class_name': result_text[:100],
-                    'stock_code': 'VISION',
-                    'description': result_text[:100],
-                    'confidence': 0.8,
-                    'source': 'openai_vision'
-                }]
-                
-        except Exception as e:
-            logger.error(f"Error with OpenAI Vision classification: {e}")
-            return []
-    
-    def classify(self, image: Image.Image, top_k: int = 5, image_bytes: Optional[bytes] = None) -> List[Dict]:
+    def classify(self, image: Image.Image, top_k: int = 5) -> List[Dict]:
         """
         Classify a product image.
-        
-        Uses CNN model first, falls back to OpenAI Vision if:
-        - CNN confidence is below threshold
-        - CNN model is not loaded
         
         Args:
             image: PIL Image object
             top_k: Number of top predictions to return
-            image_bytes: Optional raw image bytes for OpenAI Vision
             
         Returns:
             List of dictionaries with class names and confidence scores
         """
-        cnn_results = []
+        if not self.model_loaded:
+            # Return default prediction if model not loaded
+            return [{
+                'class_name': 'unknown',
+                'stock_code': 'N/A',
+                'confidence': 0.0,
+                'description': 'Model not loaded'
+            }]
         
-        # Try CNN model first if available
-        if self.model_loaded:
-            # Preprocess image
-            img_array = self.preprocess_image(image)
-            
-            # Get predictions
-            predictions = self.model.predict(img_array, verbose=0)[0]
-            
-            # Get top-k indices
-            top_indices = np.argsort(predictions)[-top_k:][::-1]
-            
-            for idx in top_indices:
-                class_name = self.index_to_class.get(str(idx), f"class_{idx}")
-                
-                # Parse class name (format: "22384_LUNCH_BAG_PINK_POLKADOT")
-                parts = class_name.split('_', 1)
-                stock_code = parts[0] if len(parts) > 1 else 'N/A'
-                description = parts[1].replace('_', ' ') if len(parts) > 1 else class_name
-                
-                cnn_results.append({
-                    'class_name': class_name,
-                    'stock_code': stock_code,
-                    'description': description,
-                    'confidence': float(predictions[idx]),
-                    'source': 'cnn'
-                })
-            
-            # If top CNN confidence is high enough, return CNN results
-            if cnn_results and cnn_results[0]['confidence'] >= self.CONFIDENCE_THRESHOLD:
-                logger.info(f"CNN confident prediction: {cnn_results[0]['description']} ({cnn_results[0]['confidence']:.1%})")
-                return cnn_results
-            
-            logger.info(f"CNN confidence low ({cnn_results[0]['confidence']:.1%}), trying OpenAI Vision...")
+        # Preprocess image
+        img_array = self.preprocess_image(image)
         
-        # Use OpenAI Vision as fallback or primary
-        if self.openai_client and image_bytes:
-            vision_results = self._classify_with_openai_vision(image_bytes)
-            if vision_results:
-                # Combine with CNN results if available
-                if cnn_results:
-                    # Add CNN results as alternatives
-                    vision_results.extend(cnn_results[:3])
-                return vision_results
+        # Get predictions
+        predictions = self.model.predict(img_array, verbose=0)[0]
         
-        # Return CNN results if available, even with low confidence
-        if cnn_results:
-            return cnn_results
+        # Get top-k indices
+        top_indices = np.argsort(predictions)[-top_k:][::-1]
         
-        # No classification available
-        return [{
-            'class_name': 'unknown',
-            'stock_code': 'N/A',
-            'confidence': 0.0,
-            'description': 'Could not classify product',
-            'source': 'none'
-        }]
+        results = []
+        for idx in top_indices:
+            class_name = self.index_to_class.get(str(idx), f"class_{idx}")
+            
+            # Parse class name (format: "22384_LUNCH_BAG_PINK_POLKADOT")
+            parts = class_name.split('_', 1)
+            stock_code = parts[0] if len(parts) > 1 else 'N/A'
+            description = parts[1].replace('_', ' ') if len(parts) > 1 else class_name
+            
+            results.append({
+                'class_name': class_name,
+                'stock_code': stock_code,
+                'description': description,
+                'confidence': float(predictions[idx])
+            })
+        
+        return results
     
     def classify_from_bytes(self, image_bytes: bytes, top_k: int = 5) -> List[Dict]:
         """
@@ -389,7 +165,7 @@ Only respond with the JSON, no other text."""
             List of classification results
         """
         image = Image.open(io.BytesIO(image_bytes))
-        return self.classify(image, top_k, image_bytes=image_bytes)
+        return self.classify(image, top_k)
     
     def classify_from_file(self, file_path: Path, top_k: int = 5) -> List[Dict]:
         """

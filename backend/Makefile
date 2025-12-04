@@ -1,22 +1,27 @@
 # ProductLens AI - Backend Makefile
 # ===================================
 
-.PHONY: help install dev run test lint clean health check-env setup
+.PHONY: help install dev run test lint clean health check-env setup test-unit test-integration test-ml test-coverage
 
 # Default target
 help:
 	@echo "╔══════════════════════════════════════════════════════════════╗"
 	@echo "║           ProductLens AI - Backend Commands                  ║"
 	@echo "╠══════════════════════════════════════════════════════════════╣"
-	@echo "║  make install      - Install dependencies                   ║"
-	@echo "║  make dev          - Run development server (debug mode)    ║"
-	@echo "║  make run          - Run production server                  ║"
-	@echo "║  make health       - Check all services health              ║"
-	@echo "║  make test         - Run sanity checks on endpoints         ║"
-	@echo "║  make lint         - Run linter (flake8)                    ║"
-	@echo "║  make check-env    - Verify environment variables           ║"
-	@echo "║  make setup        - Full setup (install + check-env)       ║"
-	@echo "║  make clean        - Remove cache and temp files            ║"
+	@echo "║  make install        - Install dependencies                 ║"
+	@echo "║  make dev            - Run development server               ║"
+	@echo "║  make run            - Run production server                ║"
+	@echo "║  make health         - Check all services health            ║"
+	@echo "║  make test           - Run all pytest tests                 ║"
+	@echo "║  make test-unit      - Run unit tests only                  ║"
+	@echo "║  make test-integration - Run integration tests              ║"
+	@echo "║  make test-ml        - Run ML-specific tests                ║"
+	@echo "║  make test-coverage  - Run tests with coverage              ║"
+	@echo "║  make sanity         - Run endpoint sanity checks           ║"
+	@echo "║  make lint           - Run linter (flake8)                  ║"
+	@echo "║  make check-env      - Verify environment variables         ║"
+	@echo "║  make setup          - Full setup (install + check-env)     ║"
+	@echo "║  make clean          - Remove cache and temp files          ║"
 	@echo "╚══════════════════════════════════════════════════════════════╝"
 
 # Install dependencies
@@ -40,8 +45,35 @@ health:
 	@echo "🏥 Checking service health..."
 	@curl -s http://localhost:5000/health | python -m json.tool || echo "❌ Backend not running! Start with 'make dev'"
 
-# Run sanity checks on all endpoints
+# Run all pytest tests
 test:
+	@echo "🧪 Running all tests..."
+	@pip show pytest > /dev/null 2>&1 || pip install pytest pytest-cov
+	pytest tests/ -v
+
+# Run unit tests only
+test-unit:
+	@echo "🧪 Running unit tests..."
+	pytest tests/unit/ -v
+
+# Run integration tests only
+test-integration:
+	@echo "🧪 Running integration tests..."
+	pytest tests/integration/ -v -m integration
+
+# Run ML-specific tests
+test-ml:
+	@echo "🧪 Running ML tests..."
+	pytest tests/ml/ -v -m ml
+
+# Run tests with coverage report
+test-coverage:
+	@echo "🧪 Running tests with coverage..."
+	pytest tests/ -v --cov=. --cov-report=html --cov-report=term-missing
+	@echo "📊 Coverage report generated in htmlcov/"
+
+# Run endpoint sanity checks (manual testing)
+sanity:
 	@echo "🧪 Running endpoint sanity checks..."
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

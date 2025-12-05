@@ -16,6 +16,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 ML_DIR = PROJECT_ROOT / "ml"
 DATA_DIR = PROJECT_ROOT / "data"
 ARTIFACTS_DIR = PROJECT_ROOT / "ml_artifacts"
+MODELS_DIR = PROJECT_ROOT / "models"  # Trained model files
 
 
 @dataclass(frozen=True)
@@ -119,7 +120,7 @@ class DataPaths:
     processed_dir: Path = DATA_DIR / "processed"
     train_dir: Path = field(default=None)
     validation_dir: Path = field(default=None)
-    model_dir: Path = ARTIFACTS_DIR / "models"
+    model_dir: Path = MODELS_DIR
     logs_dir: Path = ARTIFACTS_DIR / "logs"
     checkpoints_dir: Path = ARTIFACTS_DIR / "checkpoints"
     

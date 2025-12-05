@@ -5,40 +5,22 @@ An intelligent e-commerce product recommendation system with:
 - Natural language product search (Endpoint 1)
 - OCR-based handwritten query processing (Endpoint 2)
 - CNN-based product image detection (Endpoint 3)
-
-Architecture:
-- core/: Base classes and exceptions
-- schemas/: Pydantic request/response models
-- services/: Business logic (search/, ocr/)
-- ml/: Machine learning modules (data/, training/, inference/, evaluation/)
-- routes/: API endpoints
 """
 
 import os
 import logging
-from typing import Dict, Any, Optional
 from flask import Flask, render_template, jsonify
 from flask_cors import CORS
 
 from config import config
-
-# Import from new module structure
-from core.exceptions import (
-    ProductLensError,
-    ServiceError,
-    ConfigurationError
+from services import (
+    EmbeddingService,
+    VectorService,
+    LLMService,
+    RecommendationService,
+    OCRService,
 )
 
-# Search services
-from services.search.embedding_service import EmbeddingService
-from services.search.vector_service import VectorService
-from services.search.llm_service import LLMService
-from services.search.recommendation_service import RecommendationService
-
-# OCR services
-from services.ocr.ocr_service import OCRService
-
-# Route blueprints
 from routes.recommendation_routes import recommendation_bp, init_recommendation_routes
 from routes.ocr_routes import ocr_bp, init_ocr_routes
 from routes.image_routes import image_bp, init_image_routes
@@ -113,7 +95,7 @@ def create_app() -> Flask:
         
         # OCR service
         try:
-            ocr_service = OCRService()
+            ocr_service = OCRService(openai_api_key=config.OPENAI_API_KEY)
         except Exception as e:
             logger.warning(f"OCR service not available: {e}")
             ocr_service = None
@@ -141,42 +123,23 @@ def create_app() -> Flask:
     # Health check endpoint
     @app.route("/health", methods=["GET"])
     def health_check():
-        """Health check endpoint with detailed service status."""
-        # Build service health status
-        services_health: Dict[str, Any] = {
-            "recommendation": {
-                "status": "healthy" if recommendation_service else "unavailable",
-                "initialized": recommendation_service is not None
-            },
-            "ocr": {
-                "status": "healthy" if ocr_service else "unavailable",
-                "initialized": ocr_service is not None
-            }
-        }
-        
+        """Health check endpoint."""
         # Check CNN service status lazily
-        cnn_status = "unavailable"
-        cnn_initialized = False
+        cnn_available = False
         try:
             from ml.inference.image_classifier import ImageClassifier
             classifier = ImageClassifier()
-            cnn_initialized = classifier.is_loaded()
-            cnn_status = "healthy" if cnn_initialized else "not_loaded"
+            cnn_available = classifier.is_loaded()
         except Exception as e:
-            cnn_status = f"error: {str(e)[:50]}"
-        
-        services_health["cnn"] = {
-            "status": cnn_status,
-            "initialized": cnn_initialized
-        }
-        
-        # Overall status
-        overall_status = "healthy" if recommendation_service else "degraded"
+            logger.warning(f"Image classifier check failed: {e}")
         
         return jsonify({
-            "status": overall_status,
-            "version": "1.0.0",
-            "services": services_health
+            "status": "healthy",
+            "services": {
+                "recommendation": True,
+                "ocr": ocr_service is not None,
+                "cnn": cnn_available
+            }
         })
     
     # Sample response endpoint (from original app.py)

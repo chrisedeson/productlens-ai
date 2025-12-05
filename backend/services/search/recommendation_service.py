@@ -159,7 +159,7 @@ class RecommendationService(BaseService):
         
         try:
             # Step 1: Generate query embedding
-            embedding = self.embedding_service.create_embedding(query)
+            embedding = self.embedding_service.embed_query(query)
             
             if not embedding:
                 return RecommendationResult(

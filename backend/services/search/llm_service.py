@@ -47,7 +47,7 @@ class LLMService(BaseService, RetryMixin):
     """
     
     DEFAULT_MODEL = "gpt-4"
-    DEFAULT_MAX_TOKENS = 1024
+    DEFAULT_MAX_TOKENS = 150
     DEFAULT_TEMPERATURE = 0.7
     
     SYSTEM_PROMPT = """You are a helpful shopping assistant for an e-commerce platform.
@@ -151,8 +151,7 @@ Guidelines:
             response = self._with_retry(
                 lambda: self._call_openai(prompt),
                 max_retries=3,
-                exceptions=(OpenAIError,),
-                exclude_exceptions=(OpenAIRateLimitError,)
+                exceptions=(OpenAIError,)
             )
             
             return {
@@ -221,13 +220,11 @@ Guidelines:
             for p in products
         ])
         
-        prompt = f"""User is searching for: "{query}"
+        prompt = f"""User searched for: "{query}"
 
-I found these matching products:
-{product_list}
+Found {len(products)} matching products.
 
-Please recommend the best products from this list and explain why each one 
-matches what the user is looking for. Be specific about features and benefits."""
+Give a brief 1-2 sentence friendly response about these results. Do NOT list the products - they're shown in a table."""
         
         if context:
             prompt += f"\n\nAdditional context: {context}"

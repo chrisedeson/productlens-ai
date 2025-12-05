@@ -55,7 +55,13 @@ def ocr_query():
         image_data = image_file.read()
         
         # Extract text using OCR
-        extracted_text = ocr_service.extract_text(image_data)
+        ocr_result = ocr_service.extract_text(image_data)
+        
+        # Handle OCRResult object - extract the text string
+        if hasattr(ocr_result, 'text'):
+            extracted_text = ocr_result.text
+        else:
+            extracted_text = str(ocr_result) if ocr_result else ""
         
         if not extracted_text or not extracted_text.strip():
             return jsonify({
